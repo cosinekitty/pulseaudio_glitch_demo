@@ -1,0 +1,17 @@
+#!/bin/bash
+Fail()
+{
+    echo "FAIL($0): $1"
+    exit 1
+}
+
+rm -f sinewave
+
+RTAUDIO_SOURCE=../thestk_rtaudio
+[[ -d "${RTAUDIO_SOURCE}" ]] || Fail "Directory does not exist: ${RTAUDIO_SOURCE}"
+
+g++ -o sinewave -Wall -Werror -I"${RTAUDIO_SOURCE}" sinewave.cpp "${RTAUDIO_SOURCE}/RtAudio.cpp" || exit 1
+
+./sinewave || Fail "sinewave returned error $?"
+
+exit 0
