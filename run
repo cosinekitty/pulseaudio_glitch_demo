@@ -7,7 +7,7 @@ Fail()
 
 rm -f sinewave
 
-RTAUDIO_SOURCE=../thestk_rtaudio
+RTAUDIO_SOURCE=../rtaudio
 [[ -d "${RTAUDIO_SOURCE}" ]] || Fail "Directory does not exist: ${RTAUDIO_SOURCE}"
 
 g++ -o sinewave -Wall -Werror -I"${RTAUDIO_SOURCE}" \

@@ -18,8 +18,12 @@ without my fix, and that the problem goes away when my fix is applied.
 ## Reproducing the glitch
 
 1. Clone this repository on a Linux system that has PulseAudio installed.
-2. `cd pulseaudio_glitch_demo`
-3. `./run`
+2. Clone the [rtaudio repository](https://github.com/thestk/rtaudio).
+3. `cd rtaudio`
+4. `git checkout c70f95e352b26e3bd486d6b2b23e3964f2b97a39`
+5. `cd ../pulseaudio_glitch_demo`
+6. Edit the `run` script and verify that the line `RTAUDIO_SOURCE=../rtaudio` correctly points to the directory where you cloned rtaudio. Make adjustments to the path as needed.
+7. `./run`
 
 You will hear an 80 Hz stereo sine wave. To reproduce the glitch, allow the program
 to continue running while you switch to other windows, run other things, etc.
@@ -28,6 +32,9 @@ On my system, the glitches happen even if I do nothing, but they happen a lot
 more if I open Google Chrome and start switching tabs around.
 But pretty much any normal user activity will cause the glitches sooner or later.
 
+When you are done with the demo program, press ENTER and it will stop generating audio and quit.
+
 ## Validating the fix
+
 Apply my patch to rtaudio, then repeat the steps above.
 The glitch will disappear.
