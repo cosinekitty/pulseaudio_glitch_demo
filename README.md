@@ -1,4 +1,4 @@
-# Repro of rtaudio glitch using PulseAudio
+# Glitch in rtaudio + PulseAudio
 
 ## Introduction
 
