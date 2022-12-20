@@ -23,12 +23,27 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
+    unsigned outputDeviceId = 0;
+    bool found = false;
     std::vector<unsigned> deviceIdList = dac.getDeviceIds();
     for (unsigned id : deviceIdList)
     {
         RtAudio::DeviceInfo info = dac.getDeviceInfo(id);
         printf("    %u = [%s]\n", id, info.name.c_str());
+        if (info.isDefaultOutput)
+        {
+            outputDeviceId = id;
+            found = true;
+        }
     }
+
+    if (!found)
+    {
+        printf("Could not find default output device.\n");
+        return 1;
+    }
+
+    printf("Found default output device ID = %d\n", outputDeviceId);
 
     return 0;
 }
