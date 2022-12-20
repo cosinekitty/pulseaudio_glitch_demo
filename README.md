@@ -38,3 +38,15 @@ When you are done with the demo program, press ENTER and it will stop generating
 
 Apply my patch to rtaudio, then repeat the steps above.
 The glitch will disappear.
+
+## Theory
+
+My best understanding of the glitch is that it happened when
+[this change was made](https://github.com/thestk/rtaudio/commit/108e9306227d4ca4b02754392cf42496a4b253c1).
+
+VCV Rack 2.0.6 used a version of rtaudio before this change,
+and it never glitched on my system. VCV Rack 2.1.0 and above included a fork of rtaudio with this change,
+and it glitches. When I removed the code that set `attr_ptr` to a non-null value in `RtApiPulse::probeDeviceOpen`,
+the glitch goes away again.
+
+This is how I build and run VCV Rack on my own system, so that the audio renders correctly.
