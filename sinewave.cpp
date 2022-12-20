@@ -8,12 +8,16 @@
 #include <cstdio>
 #include <cmath>
 #include <vector>
+#include <unistd.h>
 #include "RtAudio.h"
 
 void errorCallback(RtAudioErrorType type, const std::string &errorText)
 {
     printf("errorCallback(%d): %s\n", type, errorText.c_str());
 }
+
+
+const unsigned FADE_FRAMES = 110;
 
 class SinewaveGenerator
 {
@@ -23,17 +27,53 @@ private:
     float b;    // imaginary component of phasor
     float c;    // cosine of angle increment
     float s;    // sine of angle increment
+    unsigned fadeOutCount = 0;
+    unsigned fadeInCount = FADE_FRAMES;
 
-    void generate(float *buffer, int nFrames)
+    int generate(float *buffer, int nFrames)
     {
+        int result = 0;     // continue generator audio
+
         for (int i = 0; i < nFrames; ++i)
         {
-            buffer[2*i] = a;
-            buffer[2*i + 1] = b;
-            float t = a*c - b*s;
-            b = a*s + b*c;
-            a = t;
+            if (result == 1)
+            {
+                // We have already faded out completely.
+                // Emit silence from this point on.
+                buffer[2*i] = buffer[2*i+1] = 0.0f;
+            }
+            else
+            {
+                // Use complex number multiplication to generate the next point on the unit circle.
+                buffer[2*i] = a;
+                buffer[2*i + 1] = b;
+                float t = a*c - b*s;
+                b = a*s + b*c;
+                a = t;
+
+                // Fade in when we start generating audio, to prevent initial click.
+                if (fadeInCount > 0)
+                {
+                    float scale = static_cast<float>(FADE_FRAMES - fadeInCount) / FADE_FRAMES;
+                    buffer[2*i] *= scale;
+                    buffer[2*i + 1] *= scale;
+                    --fadeInCount;
+                }
+
+                // Fade out when we stop generating audio, to prevent final click.
+                if (fadeOutCount > 0)
+                {
+                    float scale = static_cast<float>(fadeOutCount) / FADE_FRAMES;
+                    buffer[2*i] *= scale;
+                    buffer[2*i + 1] *= scale;
+                    --fadeOutCount;
+                    if (fadeOutCount == 0)
+                        result = 1;     // stop generating audio after this
+                }
+            }
         }
+
+        return result;
     }
 
 public:
@@ -55,13 +95,18 @@ public:
         RtAudioStreamStatus status,
         void *userData)
     {
-        static_cast<SinewaveGenerator*>(userData)->generate(
+        return static_cast<SinewaveGenerator*>(userData)->generate(
             static_cast<float *>(outputBuffer),
             nFrames
         );
-        return 0;
+    }
+
+    void startFadeOut()
+    {
+        fadeOutCount = FADE_FRAMES;
     }
 };
+
 
 int main(int argc, const char *argv[])
 {
@@ -127,7 +172,7 @@ int main(int argc, const char *argv[])
     SinewaveGenerator generator {sampleRate, frequencyHz};
 
     RtAudio::StreamOptions options;
-    options.flags |= RTAUDIO_SCHEDULE_REALTIME;
+    //options.flags |= RTAUDIO_SCHEDULE_REALTIME;
     options.numberOfBuffers = 2;
     options.streamName = "Sinewave Generator";
 
@@ -159,7 +204,15 @@ int main(int argc, const char *argv[])
     char line[80];
     fgets(line, sizeof(line), stdin);
 
-    dac.closeStream();
+    // Ramp down the audio generation.
+    // The generator will signal completion of the stream when it fades out.
+    generator.startFadeOut();
 
+    // Wait for audio to drain.
+    while (dac.isStreamRunning())
+        usleep(1000);
+
+    // All done!
+    dac.closeStream();
     return 0;
 }
