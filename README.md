@@ -6,8 +6,8 @@ This project reproduces an audio glitch that occurs
 when using rtaudio to generate audio via PulseAudio on Linux.
 
 I discovered this using VCV Rack 2.1.0+ and [reported it on the VCV Rack forum](https://community.vcvrack.com/t/clicks-pops-using-vcv-rack-2-1-0-edit-was-2-2-0/18796).
-I subsequently determined the root cause to be a change in how rtaudio initializes PulseAudio,
-and [submitted this fix](https://github.com/cosinekitty/rtaudio/commit/effb23d8c64efe00c741ed746ca0e0f4e983f17a) to the VCV Rack fork of rtaudio.
+I subsequently determined the root cause to be a change in how rtaudio initializes PulseAudio.
+My proposed fix is in the patch file [glitchfix.patch](glitchfix.patch).
 
 Andrew Belt suggested I report the issue and the proposed fix to Gary Scavone at
 his original [rtaudio repo on GitHub](https://github.com/thestk/rtaudio).
