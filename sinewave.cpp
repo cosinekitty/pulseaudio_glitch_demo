@@ -24,26 +24,45 @@ int main(int argc, const char *argv[])
     }
 
     unsigned outputDeviceId = 0;
-    bool found = false;
-    std::vector<unsigned> deviceIdList = dac.getDeviceIds();
-    for (unsigned id : deviceIdList)
+
+    if (argc > 1)
     {
-        RtAudio::DeviceInfo info = dac.getDeviceInfo(id);
-        printf("    %u = [%s]\n", id, info.name.c_str());
-        if (info.isDefaultOutput)
+        if (1 != sscanf(argv[1], "%u", &outputDeviceId))
         {
-            outputDeviceId = id;
-            found = true;
+            printf("ERROR: Invalid device ID '%s' on command line.\n", argv[1]);
+            return 1;
         }
+        RtAudio::DeviceInfo info = dac.getDeviceInfo(outputDeviceId);
+        if (info.name.empty())
+        {
+            printf("ERROR: Unknown device ID %u\n", outputDeviceId);
+            return 1;
+        }
+        printf("Device %u = [%s]\n", outputDeviceId, info.name.c_str());
     }
-
-    if (!found)
+    else
     {
-        printf("Could not find default output device.\n");
-        return 1;
-    }
+        bool found = false;
+        std::vector<unsigned> deviceIdList = dac.getDeviceIds();
+        for (unsigned id : deviceIdList)
+        {
+            RtAudio::DeviceInfo info = dac.getDeviceInfo(id);
+            printf("    %u = [%s]\n", id, info.name.c_str());
+            if (info.isDefaultOutput)
+            {
+                outputDeviceId = id;
+                found = true;
+            }
+        }
 
-    printf("Found default output device ID = %d\n", outputDeviceId);
+        if (!found)
+        {
+            printf("Could not find default output device.\n");
+            return 1;
+        }
+
+        printf("Found default output device ID = %d\n", outputDeviceId);
+    }
 
     return 0;
 }
