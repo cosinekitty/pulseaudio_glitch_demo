@@ -6,6 +6,7 @@
  */
 
 #include <cstdio>
+#include <cmath>
 #include <vector>
 #include "RtAudio.h"
 
@@ -13,6 +14,54 @@ void errorCallback(RtAudioErrorType type, const std::string &errorText)
 {
     printf("errorCallback(%d): %s\n", type, errorText.c_str());
 }
+
+class SinewaveGenerator
+{
+private:
+    const unsigned sampleRate;
+    float a;    // real component of phasor
+    float b;    // imaginary component of phasor
+    float c;    // cosine of angle increment
+    float s;    // sine of angle increment
+
+    void generate(float *buffer, int nFrames)
+    {
+        for (int i = 0; i < nFrames; ++i)
+        {
+            buffer[2*i] = a;
+            buffer[2*i + 1] = b;
+            float t = a*c - b*s;
+            b = a*s + b*c;
+            a = t;
+        }
+    }
+
+public:
+    SinewaveGenerator(unsigned _sampleRate, float _frequencyHz)
+        : sampleRate(_sampleRate)
+        , a(1.0f)
+        , b(0.0f)
+    {
+        float radians = (_frequencyHz * M_PI * 2.0) / _sampleRate;
+        c = std::cos(radians);
+        s = std::sin(radians);
+    }
+
+    static int callback(
+        void *outputBuffer,
+        void *inputBuffer,
+        unsigned int nFrames,
+        double streamTime,
+        RtAudioStreamStatus status,
+        void *userData)
+    {
+        static_cast<SinewaveGenerator*>(userData)->generate(
+            static_cast<float *>(outputBuffer),
+            nFrames
+        );
+        return 0;
+    }
+};
 
 int main(int argc, const char *argv[])
 {
@@ -24,9 +73,9 @@ int main(int argc, const char *argv[])
     }
 
     unsigned outputDeviceId = 0;
-
     if (argc > 1)
     {
+        // Use the device ID specified on the command line.
         if (1 != sscanf(argv[1], "%u", &outputDeviceId))
         {
             printf("ERROR: Invalid device ID '%s' on command line.\n", argv[1]);
@@ -42,6 +91,7 @@ int main(int argc, const char *argv[])
     }
     else
     {
+        // Find the default output device.
         bool found = false;
         std::vector<unsigned> deviceIdList = dac.getDeviceIds();
         for (unsigned id : deviceIdList)
@@ -63,6 +113,53 @@ int main(int argc, const char *argv[])
 
         printf("Found default output device ID = %d\n", outputDeviceId);
     }
+
+    // Render audio to the selected output device.
+    RtAudio::StreamParameters outputParameters;
+    outputParameters.deviceId = outputDeviceId;
+    outputParameters.firstChannel = 0;
+    outputParameters.nChannels = 2;
+
+    const unsigned sampleRate = 44100;
+    const float frequencyHz = 80.0f;
+    unsigned bufferFrames = 256;
+
+    SinewaveGenerator generator {sampleRate, frequencyHz};
+
+    RtAudio::StreamOptions options;
+    options.flags |= RTAUDIO_SCHEDULE_REALTIME;
+    options.numberOfBuffers = 2;
+    options.streamName = "Sinewave Generator";
+
+    RtAudioErrorType error = dac.openStream(
+        &outputParameters,
+        nullptr,
+        RTAUDIO_FLOAT32,
+        sampleRate,
+        &bufferFrames,
+        SinewaveGenerator::callback,
+        &generator,
+        &options
+    );
+
+    if (error != RTAUDIO_NO_ERROR)
+    {
+        printf("openStream returned error %d\n", error);
+        return 1;
+    }
+
+    error = dac.startStream();
+    if (error != RTAUDIO_NO_ERROR)
+    {
+        printf("startStream returned error %d\n", error);
+        return 1;
+    }
+
+    printf("Generating audio. Press ENTER to quit.\n");
+    char line[80];
+    fgets(line, sizeof(line), stdin);
+
+    dac.closeStream();
 
     return 0;
 }
