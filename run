@@ -10,7 +10,12 @@ rm -f sinewave
 RTAUDIO_SOURCE=../thestk_rtaudio
 [[ -d "${RTAUDIO_SOURCE}" ]] || Fail "Directory does not exist: ${RTAUDIO_SOURCE}"
 
-g++ -o sinewave -Wall -Werror -I"${RTAUDIO_SOURCE}" sinewave.cpp "${RTAUDIO_SOURCE}/RtAudio.cpp" || exit 1
+g++ -o sinewave -Wall -Werror -I"${RTAUDIO_SOURCE}" \
+    -ggdb3 -g3 -O0 \
+    -D __LINUX_PULSE__ -lpulse -lpulse-simple -pthread \
+    sinewave.cpp \
+    "${RTAUDIO_SOURCE}/RtAudio.cpp" \
+    || exit 1
 
 ./sinewave || Fail "sinewave returned error $?"
 
