@@ -36,7 +36,7 @@ When you are done with the demo program, press ENTER and it will stop generating
 
 ## Validating the fix
 
-Apply my patch to rtaudio, then repeat the steps above.
+Apply the patch [glitchfix.patch](glitchfix.patch) to rtaudio, then repeat the steps above.
 The glitch will disappear.
 
 ## Theory
